@@ -1,1 +1,394 @@
 
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>خدمات ساختمان</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Tahoma, Arial, sans-serif;
+  background: #f3f6f9;
+  color: #263445;
+}
+
+header {
+  background: #126b55;
+  color: white;
+  text-align: center;
+  padding: 25px 15px;
+}
+
+header h1 {
+  font-size: 23px;
+  margin: 0 0 10px;
+}
+
+header p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 15px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px #0000000d;
+}
+
+h2 {
+  font-size: 19px;
+  margin-top: 0;
+  color: #126b55;
+}
+
+label {
+  display: block;
+  margin: 15px 0 7px;
+  font-size: 14px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #ccd5df;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 15px;
+  background: white;
+}
+
+textarea {
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 15px;
+  border: none;
+  border-radius: 9px;
+  background: #126b55;
+  color: white;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #e7efeb;
+  color: #126b55;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.service-grid button {
+  margin: 0;
+  padding: 13px 5px;
+  font-size: 13px;
+}
+
+.request {
+  background: #f7faf8;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid #e0e8e3;
+  font-size: 14px;
+  line-height: 2;
+}
+
+footer {
+  text-align: center;
+  color: #718096;
+  padding: 20px;
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🏠 خدمات فنی ساختمان</h1>
+  <p>ثبت و پیگیری درخواست خدمات منزل</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>🔧 انتخاب نوع خدمات</h2>
+
+    <div class="service-grid">
+      <button onclick="selectService('برق ساختمان')">⚡ برق</button>
+      <button onclick="selectService('لوله‌کشی و تأسیسات')">🚿 تأسیسات</button>
+      <button onclick="selectService('فاضلاب و تخلیه')">🚰 فاضلاب</button>
+    </div>
+
+    <form id="requestForm">
+
+      <label>نوع خدمات</label>
+      <select id="service" required onchange="updateProblems()">
+        <option value="">انتخاب کنید</option>
+        <option>برق ساختمان</option>
+        <option>لوله‌کشی و تأسیسات</option>
+        <option>فاضلاب و تخلیه</option>
+      </select>
+
+      <label>شرح مشکل</label>
+      <select id="problem" required>
+        <option value="">ابتدا نوع خدمات را انتخاب کنید</option>
+      </select>
+
+      <label>میزان فوریت</label>
+      <select id="urgency">
+        <option>عادی</option>
+        <option>فوری</option>
+      </select>
+
+      <label>زمان مناسب مراجعه</label>
+      <select id="visitTime">
+        <option>فرقی ندارد</option>
+        <option>صبح</option>
+        <option>ظهر</option>
+        <option>عصر</option>
+        <option>شب</option>
+      </select>
+
+      <label>نام و نام خانوادگی</label>
+      <input id="name" required placeholder="نام شما">
+
+      <label>شماره تلفن همراه</label>
+      <input id="phone" type="tel" required placeholder="شماره تماس">
+
+      <label>شهر</label>
+      <input id="city" required placeholder="نام شهر">
+
+      <label>آدرس محل خدمات</label>
+      <textarea id="address" required rows="2"
+      placeholder="آدرس ساختمان، خیابان و پلاک"></textarea>
+
+      <label>توضیحات تکمیلی (اختیاری)</label>
+      <textarea id="description" rows="3"
+      placeholder="توضیحات بیشتر درباره مشکل"></textarea>
+
+      <button type="submit">ثبت درخواست خدمات</button>
+
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>👤 ثبت‌نام تکنسین</h2>
+
+    <form id="technicianForm">
+
+      <label>نام و نام خانوادگی</label>
+      <input id="techName" required>
+
+      <label>شماره تلفن همراه</label>
+      <input id="techPhone" type="tel" required>
+
+      <label>تخصص</label>
+      <select id="techSpecialty" required>
+        <option value="">انتخاب تخصص</option>
+        <option>برق ساختمان</option>
+        <option>لوله‌کشی و تأسیسات</option>
+        <option>فاضلاب و تخلیه</option>
+        <option>چند تخصص</option>
+      </select>
+
+      <label>شهر محل فعالیت</label>
+      <input id="techCity" required>
+
+      <label>سابقه کار</label>
+      <select id="experience">
+        <option>کمتر از ۱ سال</option>
+        <option>۱ تا ۳ سال</option>
+        <option>۳ تا ۵ سال</option>
+        <option>بیشتر از ۵ سال</option>
+      </select>
+
+      <button type="submit">ارسال درخواست عضویت</button>
+
+    </form>
+
+    <p style="font-size:12px;color:#777">
+      عضویت تکنسین پس از بررسی و تأیید مدیریت فعال می‌شود.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>📋 درخواست‌های ثبت‌شده</h2>
+    <div id="requests">
+      هنوز درخواستی ثبت نشده است.
+    </div>
+    <button class="secondary" onclick="showRequests()">
+      نمایش درخواست‌ها
+    </button>
+  </div>
+
+</div>
+
+<footer>
+  نسخه آزمایشی خدمات ساختمان
+</footer>
+
+<script>
+const problems = {
+  "برق ساختمان": [
+    "روشن نشدن چراغ",
+    "قطع برق واحد",
+    "خرابی کلید یا پریز",
+    "خرابی فیوز یا جعبه برق",
+    "اتصال یا سیم‌کشی",
+    "سایر مشکلات برق"
+  ],
+
+  "لوله‌کشی و تأسیسات": [
+    "نشتی آب",
+    "خرابی شیر آب",
+    "گرفتگی لوله",
+    "خرابی فلاش‌تانک",
+    "مشکل آب گرم",
+    "افت فشار آب",
+    "سایر مشکلات تأسیسات"
+  ],
+
+  "فاضلاب و تخلیه": [
+    "گرفتگی توالت",
+    "گرفتگی کف‌شور",
+    "گرفتگی لوله فاضلاب",
+    "بوی نامطبوع فاضلاب",
+    "پس‌زدگی فاضلاب",
+    "سایر مشکلات فاضلاب"
+  ]
+};
+
+function selectService(service) {
+  document.getElementById("service").value = service;
+  updateProblems();
+  document.getElementById("requestForm").scrollIntoView({
+    behavior: "smooth"
+  });
+}
+
+function updateProblems() {
+  const service = document.getElementById("service").value;
+  const problem = document.getElementById("problem");
+
+  problem.innerHTML = '<option value="">انتخاب مشکل</option>';
+
+  if (problems[service]) {
+    problems[service].forEach(item => {
+      const option = document.createElement("option");
+      option.value = item;
+      option.textContent = item;
+      problem.appendChild(option);
+    });
+  }
+}
+
+function getRequests() {
+  return JSON.parse(localStorage.getItem("buildingRequests") || "[]");
+}
+
+document.getElementById("requestForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const request = {
+    id: Date.now(),
+    service: document.getElementById("service").value,
+    problem: document.getElementById("problem").value,
+    urgency: document.getElementById("urgency").value,
+    visitTime: document.getElementById("visitTime").value,
+    name: document.getElementById("name").value,
+    phone: document.getElementById("phone").value,
+    city: document.getElementById("city").value,
+    address: document.getElementById("address").value,
+    description: document.getElementById("description").value,
+    status: "ثبت اولیه"
+  };
+
+  const requests = getRequests();
+  requests.push(request);
+
+  localStorage.setItem("buildingRequests", JSON.stringify(requests));
+
+  alert("درخواست شما با موفقیت ثبت شد.");
+
+  this.reset();
+  updateProblems();
+  showRequests();
+});
+
+document.getElementById("technicianForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const technician = {
+    name: document.getElementById("techName").value,
+    phone: document.getElementById("techPhone").value,
+    specialty: document.getElementById("techSpecialty").value,
+    city: document.getElementById("techCity").value,
+    experience: document.getElementById("experience").value,
+    status: "در انتظار تأیید مدیریت"
+  };
+
+  const technicians = JSON.parse(
+    localStorage.getItem("buildingTechnicians") || "[]"
+  );
+
+  technicians.push(technician);
+
+  localStorage.setItem("buildingTechnicians", JSON.stringify(technicians));
+
+  alert("درخواست عضویت شما ثبت شد و در انتظار بررسی مدیریت است.");
+
+  this.reset();
+});
+
+function showRequests() {
+  const requests = getRequests();
+  const container = document.getElementById("requests");
+
+  if (requests.length === 0) {
+    container.innerHTML = "هنوز درخواستی ثبت نشده است.";
+    return;
+  }
+
+  container.innerHTML = "";
+
+  requests.slice().reverse().forEach(request => {
+    const div = document.createElement("div");
+    div.className = "request";
+
+    div.textContent =
+      "خدمات: " + request.service +
+      " | مشکل: " + request.problem +
+      " | فوریت: " + request.urgency +
+      " | وضعیت: " + request.status;
+
+    container.appendChild(div);
+  });
+}
+</script>
+
+</body>
+</html>
