@@ -60,6 +60,14 @@ create table if not exists public.technician_ratings (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.subscription_prices (
+  account_group text not null check (account_group in ('customer','technician')),
+  plan text not null check (plan in ('ten_day','monthly')),
+  amount_toman bigint not null check (amount_toman >= 0),
+  active boolean not null default true,
+  primary key (account_group, plan)
+);
+
 create table if not exists public.subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id),
@@ -99,7 +107,7 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if auth.role() <> 'service_role' then
+  if auth.role() is distinct from 'service_role' and current_user not in ('postgres','supabase_admin') then
     if tg_table_name = 'profiles' and new.role is distinct from old.role then
       raise exception 'Role changes require administrator action';
     end if;
@@ -132,6 +140,7 @@ alter table public.technician_profiles enable row level security;
 alter table public.service_requests enable row level security;
 alter table public.technician_ratings enable row level security;
 alter table public.subscriptions enable row level security;
+alter table public.subscription_prices enable row level security;
 
 -- Profiles: users can read/update only their own profile. Admin policies are added
 -- after an administrator is assigned securely in the Supabase SQL editor.
@@ -158,11 +167,8 @@ for update to authenticated using (user_id = (select auth.uid()))
 with check (user_id = (select auth.uid()));
 
 -- Requests: customer creates and reads own; assigned technician reads and updates assigned work.
-drop policy if exists "customer creates own requests" on public.service_requests;
-create policy "customer creates own requests" on public.service_requests
-for insert to authenticated with check (
-  customer_id = (select auth.uid()) and status = 'submitted'
-);
+-- Direct inserts are disabled. Use the checked RPC below so a customer cannot
+-- assign a request to an unapproved or out-of-area technician.
 drop policy if exists "request visible to customer or assigned tech" on public.service_requests;
 create policy "request visible to customer or assigned tech" on public.service_requests
 for select to authenticated using (
@@ -173,6 +179,8 @@ create policy "assigned technician updates request" on public.service_requests
 for update to authenticated
 using (technician_id = (select auth.uid()) and status in ('referred','in_progress'))
 with check (technician_id = (select auth.uid()) and status in ('referred','in_progress','rejected','completed'));
+revoke update on public.service_requests from authenticated;
+grant update (status) on public.service_requests to authenticated;
 
 -- Ratings: customers can rate only their own completed request, once.
 drop policy if exists "ratings visible to signed in users" on public.technician_ratings;
@@ -194,10 +202,51 @@ drop policy if exists "users read own subscriptions" on public.subscriptions;
 create policy "users read own subscriptions" on public.subscriptions
 for select to authenticated using (user_id = (select auth.uid()));
 drop policy if exists "users create own pending subscriptions" on public.subscriptions;
-create policy "users create own pending subscriptions" on public.subscriptions
-for insert to authenticated with check (
-  user_id = (select auth.uid()) and status = 'pending'
-);
+-- Direct inserts are disabled; request a plan through request_subscription().
+drop policy if exists "active prices readable" on public.subscription_prices;
+create policy "active prices readable" on public.subscription_prices
+for select to authenticated using (active = true);
+
+-- Customer-selected technician assignment is validated on the database, not trusted from the browser.
+create or replace function public.create_service_request(
+  p_technician_id uuid, p_service_type text, p_problem_type text,
+  p_area text, p_address text, p_description text,
+  p_latitude double precision default null, p_longitude double precision default null
+) returns uuid language plpgsql security definer set search_path = '' as $
+declare v_request_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if not exists (
+    select 1 from public.technician_profiles t
+    where t.user_id = p_technician_id and t.approved = true
+      and (t.specialty = p_service_type or t.specialty = 'چند تخصص')
+      and (t.coverage = 'city' or p_area = t.home_area or p_area = any(t.service_areas))
+  ) then raise exception 'Selected technician is not approved for this service area'; end if;
+  insert into public.service_requests(customer_id, technician_id, service_type, problem_type, area, address, description, latitude, longitude, status)
+  values (auth.uid(), p_technician_id, p_service_type, p_problem_type, p_area, p_address, p_description, p_latitude, p_longitude, 'referred')
+  returning id into v_request_id;
+  return v_request_id;
+end; $;
+revoke all on function public.create_service_request(uuid,text,text,text,text,text,double precision,double precision) from public;
+grant execute on function public.create_service_request(uuid,text,text,text,text,text,double precision,double precision) to authenticated;
+
+create or replace function public.request_subscription(p_account_group text, p_plan text)
+returns uuid language plpgsql security definer set search_path = '' as $
+declare v_price bigint; v_id uuid;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if not exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = p_account_group) then
+    raise exception 'Subscription group does not match account role';
+  end if;
+  select amount_toman into v_price from public.subscription_prices
+  where account_group = p_account_group and plan = p_plan and active = true;
+  if v_price is null then raise exception 'Subscription plan is not configured'; end if;
+  insert into public.subscriptions(user_id, account_group, plan, amount_toman, status)
+  values (auth.uid(), p_account_group, p_plan, v_price, 'pending') returning id into v_id;
+  return v_id;
+end; $;
+revoke all on function public.request_subscription(text,text) from public;
+grant execute on function public.request_subscription(text,text) to authenticated;
 
 -- Public aggregate view does not expose phone numbers or private technician data.
 create or replace view public.technician_rating_summary
