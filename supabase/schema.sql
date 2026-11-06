@@ -135,6 +135,18 @@ drop trigger if exists touch_service_request on public.service_requests;
 create trigger touch_service_request before update on public.service_requests
 for each row execute procedure public.touch_request_updated_at();
 
+create or replace function public.enforce_request_status_transition()
+returns trigger language plpgsql set search_path = '' as $
+begin
+  if new.status = old.status then return new; end if;
+  if old.status = 'referred' and new.status in ('in_progress','rejected') then return new; end if;
+  if old.status = 'in_progress' and new.status = 'completed' then return new; end if;
+  raise exception 'Invalid service request status transition';
+end; $;
+drop trigger if exists enforce_service_request_transition on public.service_requests;
+create trigger enforce_service_request_transition before update of status on public.service_requests
+for each row execute procedure public.enforce_request_status_transition();
+
 alter table public.profiles enable row level security;
 alter table public.technician_profiles enable row level security;
 alter table public.service_requests enable row level security;
@@ -150,6 +162,8 @@ using (id = (select auth.uid()));
 drop policy if exists "profile update self" on public.profiles;
 create policy "profile update self" on public.profiles for update to authenticated
 using (id = (select auth.uid())) with check (id = (select auth.uid()));
+revoke update on public.profiles from authenticated;
+grant update (display_name) on public.profiles to authenticated;
 
 -- Approved technicians are discoverable; each technician manages only their own record.
 drop policy if exists "technician profiles public read approved" on public.technician_profiles;
@@ -229,6 +243,24 @@ begin
 end; $;
 revoke all on function public.create_service_request(uuid,text,text,text,text,text,double precision,double precision) from public;
 grant execute on function public.create_service_request(uuid,text,text,text,text,text,double precision,double precision) to authenticated;
+
+create or replace function public.reassign_service_request(p_request_id uuid, p_technician_id uuid)
+returns void language plpgsql security definer set search_path = '' as $
+declare v_request public.service_requests%rowtype;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  select * into v_request from public.service_requests where id = p_request_id and customer_id = auth.uid() for update;
+  if not found or v_request.status <> 'rejected' then raise exception 'Request is not eligible for reassignment'; end if;
+  if not exists (
+    select 1 from public.technician_profiles t
+    where t.user_id = p_technician_id and t.approved = true
+      and (t.specialty = v_request.service_type or t.specialty = 'چند تخصص')
+      and (t.coverage = 'city' or v_request.area = t.home_area or v_request.area = any(t.service_areas))
+  ) then raise exception 'Selected technician is not approved for this service area'; end if;
+  update public.service_requests set technician_id = p_technician_id, status = 'referred' where id = p_request_id;
+end; $;
+revoke all on function public.reassign_service_request(uuid,uuid) from public;
+grant execute on function public.reassign_service_request(uuid,uuid) to authenticated;
 
 create or replace function public.request_subscription(p_account_group text, p_plan text)
 returns uuid language plpgsql security definer set search_path = '' as $
