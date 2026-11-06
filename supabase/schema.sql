@@ -351,6 +351,13 @@ revoke all on function public.update_request_status(uuid,text,text) from public;
 grant execute on function public.update_request_status(uuid,text,text) to authenticated;
 revoke all on function public.request_subscription(text) from public;
 grant execute on function public.request_subscription(text) to authenticated;
+grant select on public.profiles, public.service_areas, public.technician_profiles,
+ public.service_requests, public.request_events, public.technician_ratings,
+ public.subscription_plans, public.subscriptions to authenticated;
+grant insert on public.technician_profiles, public.technician_ratings to authenticated;
+grant update on public.service_areas, public.subscription_plans to authenticated;
+grant delete on public.service_areas, public.subscription_plans to authenticated;
+
 grant select on public.technician_rating_summary to authenticated;
 
 insert into public.subscription_plans(account_type,plan_code,title,price_toman,duration_days)
