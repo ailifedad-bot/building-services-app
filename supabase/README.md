@@ -1,31 +1,21 @@
-# Supabase setup — Phase 2A
+# Supabase clean setup — Building Services Gorgan
 
-This folder creates the central PostgreSQL data model and initial Row Level Security (RLS) rules.
+This is the clean baseline database schema. It is non-destructive and does not drop tables or records. It does not yet connect the GitHub Pages frontend.
 
-## Setup
-1. Create a Supabase project for the Gorgan building-services app.
-2. Open **SQL Editor → New query**.
-3. Copy and run `schema.sql`.
-4. Confirm that the five public tables and the rating summary view were created.
-5. Do not place a Supabase service-role key in GitHub Pages or any browser JavaScript.
+## Run the schema
+1. Open the intended Supabase project and confirm its project URL.
+2. Open SQL Editor, then New query.
+3. Open the schema.sql file in this folder and copy the complete contents.
+4. Paste into SQL Editor and press Run once.
+5. If any error appears, stop and send the exact error text. Do not run random fragments or manually drop tables.
 
-## Phone sign-in
-Phone OTP requires enabling Phone in **Authentication → Providers** and configuring an SMS provider supported for the target country. The frontend will use Supabase Auth `signInWithOtp({ phone })` and `verifyOtp({ phone, token, type: 'sms' })`. Test with a configured test number before paying for SMS delivery.
+## Authentication
+Enable Phone under Authentication providers and configure an SMS provider that can deliver to Iranian mobile numbers. Test a real OTP delivery before relying on phone login. The signup metadata account_type may be customer or technician. Admin is never self-selectable.
 
-## First administrator
-New Auth users are always created as `customer`. Do not add an admin selector to the public app. Promote the first administrator only from the Supabase SQL editor after verifying the account:
-```sql
-update public.profiles
-set role = 'admin'
-where phone = '+98YOUR_VERIFIED_NUMBER';
-```
-Do not expose the service-role key to the browser.
-
-## Important integration work still required
-- Add the project URL and publishable/anon key to a local, untracked config file (never commit secrets).
-- Replace LocalStorage operations in the UI with authenticated Supabase queries.
-- Add server-side functions for technician assignment, admin actions, payment callbacks and subscription activation.
-- Add stricter transition rules and auditing before production. The starter RLS policies are a foundation, not a complete production security review.
-- Configure an SMS provider that can deliver to Iranian mobile numbers; provider availability, sender registration, compliance and cost must be confirmed before promising SMS OTP in Iran.
-
-See the official [Supabase phone login guide](https://supabase.com/docs/guides/auth/phone-login).
+## Important
+- The service_areas table is intentionally empty until the verified Gorgan neighborhood list is added.
+- Four subscription plans are inserted with zero-price placeholders. Set real toman prices before offering subscriptions.
+- Payment activation must be server-side; browser code must never mark an order as paid.
+- Use only the project URL and publishable/anon key in browser code. Never expose database password, service_role key, or secret key.
+- Assign the first administrator manually in SQL Editor after verifying the phone number.
+- The current frontend still uses localStorage. OTP, Supabase queries, technician onboarding, request realtime and multi-device tests are a separate integration phase.
