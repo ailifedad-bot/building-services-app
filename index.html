@@ -10,7 +10,9 @@
 </main></div><nav class="nav"><div class="navin"><button class="active" data-v="home" onclick="view('home',this)"><span>⌂</span>خانه</button><button data-v="form" onclick="view('form',this)"><span>＋</span>ثبت درخواست</button><button data-v="list" onclick="view('list',this)"><span>▤</span>درخواست‌ها</button><button data-v="profile" onclick="view('profile',this)"><span>♙</span>حساب من</button></div></nav><div id="modal"></div>
 <script>
 const catalog={'برق ساختمان':['قطع برق واحد','خرابی کلید یا پریز','روشن نشدن چراغ','نصب روشنایی','ایراد تابلو برق','سیم‌کشی و کابل‌کشی','سایر موارد'],'لوله‌کشی و تأسیسات':['نشتی لوله آب','خرابی شیرآلات','گرفتگی لوله آب','تعمیر پمپ','تعمیر فلاش‌تانک','افت فشار آب','سایر موارد'],'فاضلاب و تخلیه':['گرفتگی سینک','گرفتگی کف‌شور','گرفتگی توالت','بوی نامطبوع فاضلاب','نشتی لوله فاضلاب','بررسی مسیر فاضلاب','سایر موارد']};
-const $=x=>document.getElementById(x);\nfunction readStore(key,fallback){try{const value=JSON.parse(localStorage.getItem(key)||'null');return value===null?fallback:value}catch(error){return fallback}}\nlet data=readStore('bs_requests',[]),role=localStorage.getItem('bs_role')||'customer',filter='all';
+const $=x=>document.getElementById(x);
+function readStore(key,fallback){try{const value=JSON.parse(localStorage.getItem(key)||'null');return value===null?fallback:value}catch(error){return fallback}}
+let data=readStore('bs_requests',[]),role=localStorage.getItem('bs_role')||'customer',filter='all';
 function persist(){localStorage.setItem('bs_requests',JSON.stringify(data));render()}
 function view(id,btn){document.querySelectorAll('main section').forEach(x=>x.classList.add('hidden'));$(id).classList.remove('hidden');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.v===id));if(id==='list')render();window.scrollTo(0,0)}
 function newReq(t){$('type').value=t;problems();view('form')}
